@@ -426,7 +426,7 @@ void init_BLE( void )
  *=================================================*/
 void setup( void )
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   pinMode(STEP_PIN, OUTPUT);
   pinMode(DIR_PIN, OUTPUT);
@@ -439,6 +439,12 @@ void setup( void )
   digitalWrite(STEP_PIN, HIGH);    
 
   init_BLE();
+
+  /* This block will eventually be NV reads...*/
+  set_step_size(16);
+  set_direction(DIR_FORWARD);
+  set_step_delay(100);
+  set_num_steps(16*50); //quarter circle
 
   Serial.println("inited");
   
