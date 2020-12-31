@@ -1,4 +1,6 @@
 /* BLE controlled stepper motor */
+
+
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLEServer.h>
@@ -28,12 +30,13 @@ typedef enum
 
 state_type current_state;
 
-uint32_t step_delay_ms = 1;
-uint32_t next_step_ms = 0;
-uint32_t step_delay = 2;
+uint32_t step_delay_ms = 2;  /* Indicates how many MS between steps.  Must be >= 2ms */
+uint32_t next_step_ms = 0;   /* timestamp from millis() indicating when our next step is.  I'm not expecting
+                              * to run for days, so I'm not worried about rollover.
+                              */
 
-uint32_t step_count = 0;
-uint32_t max_steps = 0;
+uint32_t max_steps = 0;      /* how many steps can we take until we'll stop? */
+uint32_t step_count = 0;     /* how many steps have we taken already? */
 
 /*==================================================
  * BLE Characteristic Definitions
@@ -115,6 +118,7 @@ int set_step_size(int step_size )
  *=================================================*/
 int set_step_delay(uint32_t delay_ms )
 {
+  /* because of how we're generating the square wave, we need at least 2ms here */
   if (delay_ms >=2 )
   {
     step_delay_ms = delay_ms;
@@ -143,6 +147,9 @@ int set_num_steps(uint32_t num_steps )
 /*==================================================
  * set_direction
  * 
+ *   Sets the direction pin on the stepper driver.
+ *  
+ *  returns non-zero if we have an error.
  *=================================================*/
 int set_direction(dir_type dir )
 {
@@ -164,6 +171,13 @@ int set_direction(dir_type dir )
   
 }
 
+/*==================================================
+ * stop_motion
+ * 
+ * Sets our state variables so that motion will stop on the 
+ *   next step, and also sets the enable pin to indicate whether
+ *   we still want the stepper motor engaged.
+ *=================================================*/
 void stop_motion(bool engage_stepper)
 {
   current_state = STATE_STOPPED;
@@ -240,6 +254,15 @@ void check_for_step( void )
   
 }
 
+/*===========================================================
+ * BLUETOOTH FUNCTIONALITY
+ ============================================================*/
+
+/*==================================================
+ * MyServerCallbacks
+ * 
+ * Sets actions for BLE connect and disconnect.
+ *=================================================*/
 class MyServerCallbacks: public BLEServerCallbacks 
 {
     void onConnect(BLEServer* pServer) 
@@ -253,6 +276,12 @@ class MyServerCallbacks: public BLEServerCallbacks
     }
 };
 
+/*==================================================
+ * StepSizeCB
+ * 
+ * Called when the step size characteristic is accessed.
+ * Currently just has a "write" function to set the appropriate step size.
+ *=================================================*/
 class StepSizeCB: public BLECharacteristicCallbacks 
 {
     void onWrite(BLECharacteristic *pCharacteristic) 
@@ -272,6 +301,13 @@ class StepSizeCB: public BLECharacteristicCallbacks
     }
 };
 
+
+/*==================================================
+ * StepDelayCB
+ * 
+ * Called when the step delay characteristic is accessed.
+ * Currently just has a "write" function to set the appropriate step delay.
+ *=================================================*/
 class StepDelayCB: public BLECharacteristicCallbacks 
 {
     void onWrite(BLECharacteristic *pCharacteristic) 
@@ -290,6 +326,13 @@ class StepDelayCB: public BLECharacteristicCallbacks
       
     }
 };
+
+/*==================================================
+ * DirCB
+ * 
+ * Called when the direction characteristic is accessed.
+ * Currently just has a "write" function to set the appropriate direction.
+ *=================================================*/
 
 class DirCB: public BLECharacteristicCallbacks 
 {
@@ -315,6 +358,16 @@ class DirCB: public BLECharacteristicCallbacks
     }
 };
 
+
+/*==================================================
+ * MotionCtlCB
+ * 
+ * Called when the motion control characteristic is accessed.
+ * Currently just has a "write" function: 
+ *   't' or 'T' to start tracking mode
+ *   'x' or 'X' to stop tracking and disengage the motor
+ *   'e' or 'E' to stop tracking but keep the stepper engaged. 
+ *=================================================*/
 class MotionCtlCB: public BLECharacteristicCallbacks 
 {
     void onWrite(BLECharacteristic *pCharacteristic) 
@@ -348,6 +401,13 @@ class MotionCtlCB: public BLECharacteristicCallbacks
     }
 };
 
+
+/*==================================================
+ *  NumStepsCB
+ * 
+ * Called when the num steps characteristic is accessed.
+ * Currently just has a "write" function to set the appropriate maximun number of steps.
+ *=================================================*/
 class NumStepsCB: public BLECharacteristicCallbacks 
 {
     void onWrite(BLECharacteristic *pCharacteristic) 
@@ -366,6 +426,12 @@ class NumStepsCB: public BLECharacteristicCallbacks
     }
 };
 
+
+/*==================================================
+ * init_BLE
+ * 
+ * Sets up BLE, including setting server and charateristic callbacks.
+ *=================================================*/
 void init_BLE( void )
 {
   uint8_t init_value[6];
