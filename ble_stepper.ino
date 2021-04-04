@@ -118,8 +118,8 @@ int set_step_size(int step_size )
  *=================================================*/
 int set_step_delay(uint32_t delay_ms )
 {
-  /* because of how we're generating the square wave, we need at least 2ms here */
-  if (delay_ms >=2 )
+  /* because of how we're generating the square wave, we need at least 1ms here */
+  if (delay_ms >=1 )
   {
     step_delay_ms = delay_ms;
     return 0;
@@ -216,7 +216,7 @@ void start_motion( void )
 
   step_count = 0;
 
-  next_step_ms = millis();
+  next_step_ms = micros();  // danger
   
   current_state = STATE_MOVING;
   digitalWrite(ENABLE_PIN, LOW);
@@ -231,15 +231,15 @@ void check_for_step( void )
 {
   uint32_t current_ms;
 
-  current_ms = millis();
+  current_ms = micros();  // DANGEROUS!  first, this overflows at 70 min. Second, I'm keeping the "ms" nomenclature for the test
 
   if ((current_state == STATE_MOVING) && (current_ms >= next_step_ms))
   {
-    Serial.print("step # ");
-    Serial.println(step_count);
+    //Serial.print("step # ");
+    //Serial.println(step_count);
     
     digitalWrite(STEP_PIN, LOW);
-    delay(1);  // bleah!  This means step_delay_ms should always be at least 2 ms.
+    delayMicroseconds(5);  
     digitalWrite(STEP_PIN, HIGH);
 
     step_count++;
