@@ -5,16 +5,17 @@
 #include <BLEUtils.h>
 #include <BLEServer.h>
 
-/* I've laid out the pin connections so that they "walk up" the 
- *  side of the ESP32.  Can't go completly contiguous on both as the 
- *  Big-easy board has VCC, GND, RESET, and SLEEP in the middle.
+/* These are for my version of the motor driver board...which allows us to plug directly
+ * into the ESP32 
  */
-#define MS1_PIN        2
-#define MS2_PIN        0
-#define MS3_PIN        4
-#define ENABLE_PIN    15
-#define STEP_PIN      17
-#define DIR_PIN       16
+#define ENABLE_PIN    34
+#define MS1_PIN       35
+#define MS2_PIN       25
+#define MS3_PIN       26
+#define RESET_PIN     27
+#define SLEEP_PIN      1
+#define STEP_PIN      12
+#define DIR_PIN       13
 
 typedef enum
 {
@@ -500,9 +501,13 @@ void setup( void )
   pinMode(MS2_PIN, OUTPUT);
   pinMode(MS3_PIN, OUTPUT);
   pinMode(ENABLE_PIN, OUTPUT);
+  pinMode(RESET_PIN, OUTPUT);
+  pinMode(SLEEP_PIN, OUTPUT);
 
   digitalWrite(ENABLE_PIN, HIGH);  // Start disabled.  
-  digitalWrite(STEP_PIN, HIGH);    
+  digitalWrite(STEP_PIN, HIGH);  
+  digitalWrite(RESET_PIN, HIGH);
+  digitalWrite(SLEEP_PIN, HIGH);  
 
   init_BLE();
 
